@@ -1,0 +1,9 @@
+SELECT 
+    SC.student_id,
+    ROUND(SUM(SV.seconds_watched) / 60.0, 2) AS minutes_watched,
+    COUNT(SC.certificate_id) AS number_of_certificates
+FROM data_scientist_project.student_certificates AS SC
+JOIN data_scientist_project.student_video_watched AS SV 
+    ON SC.student_id = SV.student_id
+GROUP BY SC.student_id
+HAVING ROUND(SUM(SV.seconds_watched) / 60.0, 2) > 0;
