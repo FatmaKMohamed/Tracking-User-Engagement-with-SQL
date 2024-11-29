@@ -1,0 +1,21 @@
+# Calculating Total Minutes Watched in Q2 2021 and Q2 2022
+WITH Q2_2021_watching AS (
+    SELECT 
+        student_id,
+        ROUND(SUM(seconds_watched) / 60.0, 2) AS minutes_watched
+    FROM data_scientist_project.student_video_watched
+    WHERE date_watched BETWEEN '2021-04-01' AND '2021-06-30'
+    GROUP BY student_id
+),
+
+Q2_2022_watching AS (
+    SELECT 
+        student_id,
+        ROUND(SUM(seconds_watched) / 60.0, 2) AS minutes_watched
+    FROM data_scientist_project.student_video_watched
+    WHERE date_watched BETWEEN '2022-04-01' AND '2022-06-30'
+    GROUP BY student_id
+)
+
+SELECT * FROM Q2_2021_watching;
+SELECT * FROM Q2_2022_watching;
