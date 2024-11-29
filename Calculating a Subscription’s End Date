@@ -1,0 +1,19 @@
+# Calculating a Subscription’s End Date
+SELECT 
+    purchase_id, 
+    student_id,
+    CASE 
+        WHEN plan_id = 0 THEN 'Monthly'
+        WHEN plan_id = 1 THEN 'Quarterly'
+        WHEN plan_id = 2 THEN 'Annual'
+        ELSE 'Lifetime Subscription'
+    END AS subscription_type,
+    date_purchased AS date_start,
+    CASE 
+        WHEN plan_id = 0 THEN DATEADD(MONTH, 1, date_purchased)
+        WHEN plan_id = 1 THEN DATEADD(MONTH, 3, date_purchased)
+        WHEN plan_id = 2 THEN DATEADD(MONTH, 12, date_purchased)
+        ELSE GETDATE()
+    END AS date_end,
+    date_refunded
+FROM data_scientist_project.student_purchases;
