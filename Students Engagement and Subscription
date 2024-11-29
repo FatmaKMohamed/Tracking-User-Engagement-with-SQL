@@ -1,0 +1,107 @@
+WITH Student_subscription AS (
+    SELECT 
+        purchase_id, 
+        student_id,
+        CASE 
+            WHEN plan_id = 0 THEN 'Monthly'
+            WHEN plan_id = 1 THEN 'Quarterly'
+            WHEN plan_id = 2 THEN 'Annual'
+            ELSE 'Lifetime Subscription'
+        END AS subscription_type,
+        date_purchased AS date_start,
+        CASE 
+            WHEN date_refunded IS NULL THEN 
+                CASE 
+                    WHEN plan_id = 0 THEN DATEADD(MONTH, 1, date_purchased)
+                    WHEN plan_id = 1 THEN DATEADD(MONTH, 3, date_purchased)
+                    WHEN plan_id = 2 THEN DATEADD(MONTH, 12, date_purchased)
+                    WHEN plan_id = 3 THEN GETDATE() 
+                    ELSE NULL
+                END
+            ELSE date_refunded
+        END AS date_end
+    FROM data_scientist_project.student_purchases
+),
+
+paid_or_not_paid_in_q2 AS (
+    SELECT 
+        purchase_id, 
+        student_id,
+        subscription_type,
+        date_start,
+        date_end,
+        CASE 
+            WHEN date_end < '2021-04-01' THEN 0 
+            WHEN date_start > '2021-06-30' THEN 0 
+            ELSE 1 
+        END AS paid_q2_2021,
+        CASE 
+            WHEN date_end < '2022-04-01' THEN 0 
+            WHEN date_start > '2022-06-30' THEN 0 
+            ELSE 1 
+        END AS paid_q2_2022
+    FROM Student_subscription
+),
+
+Q2_2021_watching AS (
+    SELECT 
+        student_id,
+        ROUND(SUM(seconds_watched) / 60.0, 2) AS minutes_watched
+    FROM data_scientist_project.student_video_watched
+    WHERE date_watched BETWEEN '2021-04-01' AND '2021-06-30'
+    GROUP BY student_id
+),
+
+Q2_2022_watching AS (
+    SELECT 
+        student_id,
+        ROUND(SUM(seconds_watched) / 60.0, 2) AS minutes_watched
+    FROM data_scientist_project.student_video_watched
+    WHERE date_watched BETWEEN '2022-04-01' AND '2022-06-30'
+    GROUP BY student_id
+)
+
+-- Students engaged in Q2 2021 who haven’t had a paid subscription in Q2 2021
+SELECT 
+    Q21.student_id,
+    Q21.minutes_watched,
+    MAX(CASE WHEN date_start IS NULL THEN 0 ELSE PP.paid_q2_2021 END) AS paid_q2_2021
+FROM paid_or_not_paid_in_q2 AS PP 
+RIGHT JOIN Q2_2021_watching AS Q21 
+    ON PP.student_id = Q21.student_id
+GROUP BY Q21.student_id, Q21.minutes_watched
+HAVING MAX(CASE WHEN date_start IS NULL THEN 0 ELSE PP.paid_q2_2021 END) = 0;
+
+-- Students engaged in Q2 2021 who have been paid subscribers in Q2 2021
+SELECT 
+    Q21.student_id,
+    Q21.minutes_watched,
+    MAX(CASE WHEN date_start IS NULL THEN 0 ELSE PP.paid_q2_2021 END) AS paid_q2_2021
+FROM paid_or_not_paid_in_q2 AS PP 
+RIGHT JOIN Q2_2021_watching AS Q21 
+    ON PP.student_id = Q21.student_id
+GROUP BY Q21.student_id, Q21.minutes_watched
+HAVING MAX(CASE WHEN date_start IS NULL THEN 0 ELSE PP.paid_q2_2021 END) = 1;
+
+-- Students engaged in Q2 2022 who haven’t had a paid subscription in Q2 2022
+SELECT 
+    Q22.student_id,
+    Q22.minutes_watched,
+    MAX(CASE WHEN date_start IS NULL THEN 0 ELSE PP.paid_q2_2022 END) AS paid_q2_2022
+FROM paid_or_not_paid_in_q2 AS PP 
+RIGHT JOIN Q2_2022_watching AS Q22 
+    ON PP.student_id = Q22.student_id
+GROUP BY Q22.student_id, Q22.minutes_watched
+HAVING MAX(CASE WHEN date_start IS NULL THEN 0 ELSE PP.paid_q2_2022 END) = 0;
+
+-- Students engaged in Q2 2022 who have been paid subscribers in Q2 2022
+SELECT 
+    Q22.student_id,
+    Q22.minutes_watched,
+    MAX(CASE WHEN date_start IS NULL THEN 0 ELSE PP.paid_q2_2022 END) AS paid_q2_2022
+FROM paid_or_not_paid_in_q2 AS PP 
+RIGHT JOIN Q2_2022_watching AS Q22 
+    ON PP.student_id = Q22.student_id
+GROUP BY Q22.student_id, Q22.minutes_watched
+HAVING MAX(CASE WHEN date_start IS NULL THEN 0 ELSE PP.paid_q2_2022 END) = 1;
+
